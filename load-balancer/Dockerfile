@@ -1,0 +1,10 @@
+FROM ubuntu:20.04
+RUN apt-get update
+RUN apt-get install -y python3
+RUN apt-get install -y python3-pip
+RUN pip install --upgrade pip
+RUN pip install flask flask_cors
+
+EXPOSE 5000
+
+CMD ["/bin/bash"]
