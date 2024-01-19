@@ -22,7 +22,8 @@ class HashRing:
             print("Error: Server already exists")
             return False
         server_id = -1
-        for i in range(self.M):
+        # Allocate the first free server ID between 1 and M
+        for i in range(1, self.M+1):
             if i not in self.used_serverids:
                 server_id = i
                 self.used_serverids.add(i)
@@ -33,7 +34,7 @@ class HashRing:
         
         self.serverid[server_name] = server_id
         # Allocate virtual nodes
-        for j in range(self.virtual_nodes):
+        for j in range(1, self.virtual_nodes+1):
             pos = self.Phi(server_id, j)
             allocated = False
             for i in range(self.M):
@@ -62,6 +63,11 @@ class HashRing:
         self.used_serverids.remove(server_id)
         self.serverid.pop(server_name)
         return True
+
+    def print_serveralloc(self):
+        for i in range(self.M):
+            if self.server_alloc[i]!=None:
+                print(str(i) + ": " + str(self.server_alloc[i]))
 
     def get_server(self, request_id):
         pos = self.H(request_id)
