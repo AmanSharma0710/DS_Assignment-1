@@ -1,0 +1,7 @@
+{
+    "endpoints": ["home"],
+    "hashring":
+    {
+        "function": "sha256"
+    }
+}

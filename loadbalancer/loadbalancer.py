@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+import json
+import requests
 from flask_cors import CORS
 import os
 import docker
@@ -9,7 +11,10 @@ import random
 app = Flask(__name__)
 CORS(app)
 
-hr = HashRing()
+
+config = json.load(open('../config.json', 'r'))
+hr = HashRing(hashtype = config.hashring.function)
+endpoints = config['endpoints']
     
 @app.route('/rep', methods=['GET'])
 def rep():
@@ -136,8 +141,20 @@ def remove(payload):
     return jsonify({'message': message, 'status': 'successful'}), 200
 
 @app.route('/<path>', methods=['GET'])
-def path():
-    return '', 200
+def forward_request(path):
+    # This forwards the request to the backend server if it is a registered endpoint, else returns an error
+    if path in endpoints:
+        server = hr.get_server(path)
+        if server != None:
+            reply = requests.get(f'http://{server}:5000/{path}')
+            return reply.json(), reply.status_code
+        else:
+            message = '<ERROR> Server unavailable'
+            return jsonify({'message': message, 'status': 'failure'}), 400
+    else:
+        message = '<ERROR> \'{}\' endpoint does not exist in server replicas'.format(path)
+        return jsonify({'message': message, 'status': 'failure'}), 400
+    
     
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
