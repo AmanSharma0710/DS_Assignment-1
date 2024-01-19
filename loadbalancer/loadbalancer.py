@@ -4,21 +4,23 @@ import requests
 from flask_cors import CORS
 import os
 import docker
-from utils.hashring import HashRing
 import string
 import random
+import sys
+sys.path.append('../utils')
+from hashring import HashRing
 
 app = Flask(__name__)
 CORS(app)
 
 
 config = json.load(open('../config.json', 'r'))
-hr = HashRing(hashtype = config.hashring.function)
+hr = HashRing(hashtype = config['hashring']['function'])
 endpoints = config['endpoints']
     
 @app.route('/rep', methods=['GET'])
 def rep():
-    # This endpoint only returns the status of the replicas managedby the loadbalancer. 
+    # This endpoint only returns the status of the replicas managed by the loadbalancer. 
     # The response contains the number of replicas and their hostname in the docker internal 
     # network:n1 
     client = docker.from_env()
