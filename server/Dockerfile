@@ -5,4 +5,10 @@ RUN apt-get install -y python3-pip
 RUN pip install --upgrade pip
 RUN pip install flask flask_cors
 
-CMD ["/bin/bash"]
+RUN mkdir /server
+COPY . /server
+WORKDIR /server
+
+EXPOSE 12345
+
+CMD ["python3", "server.py"]

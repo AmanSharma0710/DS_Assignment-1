@@ -6,7 +6,7 @@ app = Flask(__name__)
 CORS(app)
 
 # For testing purposes, you can set the server ID as an environment variable while running the container instance of the server.
-# os.environ['SERVER_ID'] = '1'
+# os.environ['SERVER_ID'] = '1231'
 
     
 @app.route('/home', methods=['GET'])
@@ -21,4 +21,4 @@ def heartbeat():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=12345, debug=False)

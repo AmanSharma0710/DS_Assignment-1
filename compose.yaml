@@ -1,28 +1,32 @@
 version: "3.9"
-services:
-  server_1:
-    build: ./server/Dockerfile
-    container_name: server_1
-    networks: 
-      my_net:
-        aliases:  
-          - server_1
-    environment: 
-      SERVER_ID: 1
-
-  load_balancer: 
-    build: ./load_balancer/Dockerfile
-    container_name: load_balancer
-    ports:
-      - "5000:5000"
-    privileged: true
-    networks: 
-      my_net:
-        aliases:  
-          - load_balancer
-    environment:
-
 
 networks:
-  my_net: {}
+  mynet:
+    name: mynet
 
+services:
+  # server:
+  #   build:
+  #     context: ./
+  #     dockerfile: ./server/Dockerfile
+  #   container_name: server
+  #   networks: 
+  #     mynet:
+  #       aliases:  
+  #         - server_1
+
+  loadbalancer: 
+    build: 
+      context: ./
+      dockerfile: ./loadbalancer/Dockerfile
+    image: loadbalancerim
+    container_name: loadbalancer
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    privileged: true
+    networks:
+      mynet:
+        aliases:  
+          - loadbalancer
