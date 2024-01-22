@@ -13,24 +13,25 @@ from hashring import HashRing
 app = Flask(__name__)
 CORS(app)
 
+# config = json.load(open('../config.json', 'r'))
+# hr = HashRing(hashtype = config['hashring']['function'])
+# endpoints = config['endpoints']
 
-config = json.load(open('../config.json', 'r'))
-hr = HashRing(hashtype = config['hashring']['function'])
-endpoints = config['endpoints']
-    
+# replicas = []
+# server_ids = set()
+# next_server_id = 1
+
 @app.route('/rep', methods=['GET'])
 def rep():
     # This endpoint only returns the status of the replicas managed by the loadbalancer. 
     # The response contains the number of replicas and their hostname in the docker internal 
     # network:n1 
-    client = docker.from_env()
-    containers = client.containers.list(filters={'network: mynet'})
-    replicas = []
-    for container in containers:
-        replicas.append(container.name)
+    replica_names = []
+    for replica in replicas:
+        replica_names.append(replica[0])
     message = {
         "N": len(replicas),
-        "replicas": replicas
+        "replicas": replica_names
     }
     return jsonify({'message': message, 'status': 'successful'}), 200
 
@@ -38,55 +39,57 @@ def rep():
 (/add,method=POST): This endpoint adds newserver instances in the loadbalancer to scale upwith increasing client numbers in the system. The endpoint expects a JSONpayload thatmentions the number of new instances and their preferredhostnames (same as the container name indocker) ina list.Anexample request and responseisbelow.
 '''
 @app.route('/add', methods=['POST'])
-def add(payload):
+def add():
     # This endpoint adds newserver instances in the loadbalancer to scale upwith increasing client numbers in the system.
     # The endpoint expects a JSONpayload thatmentions the number of new instances and their preferredhostnames (same as the container name indocker) ina list.Anexample request and responseisbelow.
-    n = payload['n']
-    hostnames = payload['hostnames']
-    client = docker.from_env()
+    content = request.get_json(force=True)
+    n = content['n']
+    hostnames = content['hostnames']
     
     # sanity check
     if n > len(hostnames):
         message = '<ERROR> Length of hostname list is more than newly added instances'
         return jsonify({'message': message, 'status': 'failure'}), 400
     
-    containers = client.containers.list(filters={'network: mynet'})
-    current_hosts = []
-    for container in containers:
-        current_hosts.append(container.name)
-
+    replica_names = []
+    for replica in replicas:
+        replica_names.append(replica[0])
+    
     # We go through the list of preferred hostnames and check if the hostname already 
-    # exists. If it does, we return an error message. If it does not, we add the hostname
-    # For the hosts without any host name, we generate a random string
+    # exists.    
     for i in range(n):
-        hostname = ''
-        if i < len(hostnames):
-            hostname = hostnames[i]
-            if hostname in current_hosts: 
-                message = '<ERROR> Hostname already exists'
-                return jsonify({'message': message, 'status': 'failure'}), 400
-        else:
-            while True:
-                hostname = random.choices(string.ascii_uppercase + string.ascii_lowercase, k=10)
-                if hostname not in current_hosts:
+        if (i >= len(hostnames)) or (hostnames[i] in replica_names):
+            for j in range(len(replica_names)):
+                new_name = 'S'+ str(j)
+                if new_name not in replica_names:
+                    hostnames.append(new_name)
+                    replica_names.append(new_name)
                     break
-            hostnames.append(hostname)
-        
-        current_hosts.append(hostname)
 
     # Spawn the containers from the load balancer
     for i in range(n):
         # TODO: check the environment vars
-        container = os.popen(f'sudo docker run --name {hostnames[i]} --network mynet -d --network-alias {hostnames[i]} -e SERVER_ID=2 -d ImageName:latest').read()
+        container_name = "Server_"
+        serverid = -1
+        if len(server_ids) == 0:
+            global next_server_id
+            serverid = next_server_id
+            next_server_id += 1
+        else:
+            serverid = min(server_ids)
+            server_ids.remove(min(server_ids))
+        container_name += str(serverid)
+        container = os.popen(f'docker run --name {container_name} --network mynet --network-alias {container_name} -e SERVER_ID={serverid} -d serverim:latest').read()
         if len(container) == 0:
-            hr.add_server(hostnames[i])
+            hr.add_server(container_name)
+            replicas.append([hostnames[i], container_name])
         else:
             message = '<ERROR> Could not add server'
             return jsonify({'message': message, 'status': 'failure'}), 400
     
     message = {
-        "N": len(current_hosts),
-        "replicas": current_hosts
+        "N": len(replicas),
+        "replicas": replica_names
     }
         
     return jsonify({'message': message, 'status': 'successful'}), 200
@@ -97,47 +100,58 @@ def remove(payload):
     # The endpoint expects a JSONpayload thatmentions the number of instances to be removed and their preferred hostnames (same as the container name indocker) ina list.Anexample request and responseisbelow.
     n = payload['n']
     hostnames = payload['hostnames']
-    client = docker.from_env()
 
     # sanity check
     if n > len(hostnames):
         message = '<ERROR> Length of hostname list is more than newly added instances'
         return jsonify({'message': message, 'status': 'failure'}), 400
     
-    containers = client.containers.list(filters={'network: mynet'})
-    current_hosts = []
-    for container in containers:
-        current_hosts.append(container.name)
+    replica_names = []
+    for replica in replicas:
+        replica_names.append(replica[0])
     
     # sanity check
-    if n > len(current_hosts):
+    if n > len(replica_names):
         message = '<ERROR> Number of containers to be removed is more than the number of containers present'
         return jsonify({'message': message, 'status': 'failure'}), 400
     
     # We will first delete the named containers, then move on to delete the rest of the containers
     # We will also remove the hostnames from the list of hostnames
-    for i in range(len(hostnames)):
-        if hostnames[i] in current_hosts:
-            container = client.containers.get(hostnames[i])
-            os.system(f'sudo docekr stop {hostnames[i]} && sudo docker rm {hostnames[i]}')
-            hr.remove_server(hostnames[i])
-            current_hosts.remove(hostnames[i])
+
+    new_replicas = []
+    for replica in replicas:
+        if replica[0] in hostnames:
+            os.system(f'docker stop {replica[1]} && docker rm {replica[1]}')
+            server_ids.add(int(replica[1][7:]))
+            hr.remove_server(replica[1])
             n -= 1
         else:
-            message = '<ERROR> Hostname does not exist'
-            return jsonify({'message': message, 'status': 'failure'}), 400
+            new_replicas.append(replica)
     
+    replicas = new_replicas
+    replicas_tobedeleted = replicas.copy()
+    # shuffle replicas deleted
+    random.shuffle(replicas_tobedeleted)
+    while len(replicas_tobedeleted) > n:
+        replicas_tobedeleted.pop()
     # We will now delete the rest of the containers randomly chooosing from the list of containers
-    while n > 0:
-        container = random.choice(current_hosts)
-        os.system(f'sudo docekr stop {container} && sudo docker rm {container}')
-        hr.remove_server(container)
-        current_hosts.remove(container)
-        n -= 1
+    for i in range(n):
+        container = replicas_tobedeleted[i][1]
+        os.system(f'docker stop {container} && docker rm {container}')
+        hr.remove_server(int(container[7:]))
+        server_ids.add(int(container[7:]))
+    new_replicas = []
+    replica_names = []
+    for replica in replicas:
+        if replica not in replicas_tobedeleted:
+            new_replicas.append(replica)
+    replicas = new_replicas
+    for replica in replicas:
+        replica_names.append(replica[0])
 
     message = {
-        "N": len(current_hosts),
-        "replicas": current_hosts
+        "N": len(replicas),
+        "replicas": replica_names
     }
 
     return jsonify({'message': message, 'status': 'successful'}), 200
@@ -146,9 +160,9 @@ def remove(payload):
 def forward_request(path):
     # This forwards the request to the backend server if it is a registered endpoint, else returns an error
     if path in endpoints:
-        server = hr.get_server(path)
+        server = hr.get_server(random.randint(0, 999999))
         if server != None:
-            reply = requests.get(f'http://{server}:5000/{path}')
+            reply = requests.get(f'http://{server}:12345/{path}')
             return reply.json(), reply.status_code
         else:
             message = '<ERROR> Server unavailable'
@@ -157,6 +171,13 @@ def forward_request(path):
         message = '<ERROR> \'{}\' endpoint does not exist in server replicas'.format(path)
         return jsonify({'message': message, 'status': 'failure'}), 400
     
-    
 if __name__ == '__main__':
+    
+    config = json.load(open('../config.json', 'r'))
+    hr = HashRing(hashtype = config['hashring']['function'])
+    endpoints = config['endpoints']
+    replicas = []
+    server_ids = set()
+    next_server_id = 1
+    
     app.run(host='0.0.0.0', port=5000, debug=False)
