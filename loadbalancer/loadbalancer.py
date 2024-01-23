@@ -3,7 +3,6 @@ import json
 import requests
 from flask_cors import CORS
 import os
-import docker
 import string
 import random
 import sys
@@ -47,7 +46,7 @@ def add():
     hostnames = content['hostnames']
     
     # sanity check
-    if n > len(hostnames):
+    if n < len(hostnames):
         message = '<ERROR> Length of hostname list is more than newly added instances'
         return jsonify({'message': message, 'status': 'failure'}), 400
     
@@ -55,8 +54,7 @@ def add():
     for replica in replicas:
         replica_names.append(replica[0])
     
-    # We go through the list of preferred hostnames and check if the hostname already 
-    # exists.    
+    # We go through the list of preferred hostnames and check if the hostname already exists.    
     for i in range(n):
         if (i >= len(hostnames)) or (hostnames[i] in replica_names):
             for j in range(len(replica_names)):
@@ -65,10 +63,11 @@ def add():
                     hostnames.append(new_name)
                     replica_names.append(new_name)
                     break
+        elif hostnames[i] not in replica_names:
+            replica_names.append(hostnames[i])
 
     # Spawn the containers from the load balancer
     for i in range(n):
-        # TODO: check the environment vars
         container_name = "Server_"
         serverid = -1
         if len(server_ids) == 0:
@@ -80,13 +79,13 @@ def add():
             server_ids.remove(min(server_ids))
         container_name += str(serverid)
         container = os.popen(f'docker run --name {container_name} --network mynet --network-alias {container_name} -e SERVER_ID={serverid} -d serverim:latest').read()
-        if len(container) == 0:
+        if len(container) != 0:
             hr.add_server(container_name)
             replicas.append([hostnames[i], container_name])
         else:
             message = '<ERROR> Could not add server'
             return jsonify({'message': message, 'status': 'failure'}), 400
-    
+
     message = {
         "N": len(replicas),
         "replicas": replica_names
@@ -95,17 +94,19 @@ def add():
     return jsonify({'message': message, 'status': 'successful'}), 200
 
 @app.route('/rm', methods=['DELETE'])
-def remove(payload):
+def remove():
     # This endpoint removes server instances in the loadbalancer to scale down with decreasing client numbers in the system.
     # The endpoint expects a JSONpayload thatmentions the number of instances to be removed and their preferred hostnames (same as the container name indocker) ina list.Anexample request and responseisbelow.
-    n = payload['n']
-    hostnames = payload['hostnames']
+    content = request.get_json(force=True)
+    n = content['n']
+    hostnames = content['hostnames']
 
     # sanity check
-    if n > len(hostnames):
+    if n < len(hostnames):
         message = '<ERROR> Length of hostname list is more than newly added instances'
         return jsonify({'message': message, 'status': 'failure'}), 400
     
+    global replicas
     replica_names = []
     for replica in replicas:
         replica_names.append(replica[0])

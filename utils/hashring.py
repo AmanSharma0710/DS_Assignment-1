@@ -63,16 +63,18 @@ class HashRing:
         return True
             
     def remove_server(self, server_name):
-        if server_name not in self.name_to_serverid:
+        print("Removing server", server_name)
+        if server_name not in self.name_to_serverid.keys():
             print("Error: Server does not exist")
             return False
         server_id = self.name_to_serverid[server_name]
+        print("Server ID:", server_id)
         # Remove virtual nodes
         for j in range(self.M):
             if self.server_alloc[j] == server_id:
                 self.server_alloc[j] = None
         # Remove server ID
-        self.serverid_to_name.remove(server_id)
+        self.serverid_to_name.pop(server_id)
         self.name_to_serverid.pop(server_name)
         return True
 
