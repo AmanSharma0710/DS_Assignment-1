@@ -206,7 +206,7 @@ if __name__ == '__main__':
     replicas = []
     server_ids = set()
     next_server_id = 1
-    # thread = threading.Thread(target=manage_replicas)
-    # thread.start()
+    thread = threading.Thread(target=manage_replicas)
+    thread.start()
     
     app.run(host='0.0.0.0', port=5000, debug=False)

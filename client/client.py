@@ -1,6 +1,4 @@
 import requests
-import json
-import time
 
 load_balancer_url = None
 
@@ -24,11 +22,9 @@ def make_request(endpoint_path):
 
 if __name__ == "__main__":
     # load balancer port from config.json
-    config = json.load(open("../config.json", "r"))
     load_balancer_port = 5000
-    load_balancer_url = f"http://localhost:{load_balancer_port}"
-    print(load_balancer_url)
-
+    load_balancer_url = f"http://loadbalancer:{load_balancer_port}"
+    print("Client Started....")
     while(1):
         print("1. Get replica status")
         print("2. Add replicas")
@@ -60,25 +56,7 @@ if __name__ == "__main__":
             endpoint_path = input("Enter endpoint path: ")
             print(make_request(endpoint_path))
         elif choice == 5:
+            print("Exiting...")
             break
         else:
             print("Invalid choice")
-
-    # Example usage:
-    # print("Current Replica Status:")
-    # print(get_replica_status())
-
-    # Add new replicas
-    print("\nAdding 2 new replicas:")
-    added_replicas = add_replicas(2, ["S3", "S4"])
-    print(added_replicas)
-
-
-    # # Remove replicas
-    # print("\nRemoving 1 replica:")
-    # removed_replicas = remove_replicas(1, [])
-    # print(removed_replicas)
-
-    # # Check updated Replica Status:
-    # print("\nUpdated Replica Status:")
-    # print(get_replica_status())
