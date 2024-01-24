@@ -180,15 +180,20 @@ def manage_replicas():
     while True:
         lock.acquire()
         for replica in replicas:
-            reply = requests.get(f'http://{replica[1]}:{serverport}/heartbeat')
-            if reply.status_code != 200:
-                # Replica is down
-                print(f'Replica {replica[1]} is down')
-                # Ensure that the replica container is stopped and removed
-                os.system(f'docker stop {replica[1]} && docker rm {replica[1]}')
-                # Replace the replica with a new replica
-                serverid = replica[1][7:]
-                os.system(f'docker run --name {replica[1]} --network mynet --network-alias {replica[1]} -e SERVER_ID={serverid} -d serverim:latest')
+            serverdown = False
+            try:
+                reply = requests.get(f'http://{replica[1]}:{serverport}/heartbeat')
+            except:
+                serverdown = True
+            finally:
+                if reply.status_code != 200 or serverdown:
+                    # Replica is down
+                    print(f'Replica {replica[1]} is down')
+                    # Ensure that the replica container is stopped and removed
+                    os.system(f'docker stop {replica[1]} && docker rm {replica[1]}')
+                    # Replace the replica with a new replica
+                    serverid = replica[1][7:]
+                    os.system(f'docker run --name {replica[1]} --network mynet --network-alias {replica[1]} -e SERVER_ID={serverid} -d serverim:latest')
         lock.release()
         # Sleep for 10 seconds
         time.sleep(10)
