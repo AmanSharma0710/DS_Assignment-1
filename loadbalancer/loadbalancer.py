@@ -6,25 +6,20 @@ import os
 import string
 import random
 import sys
+import threading
 sys.path.append('../utils')
 from hashring import HashRing
 
 app = Flask(__name__)
 CORS(app)
-
-# config = json.load(open('../config.json', 'r'))
-# hr = HashRing(hashtype = config['hashring']['function'])
-# endpoints = config['endpoints']
-
-# replicas = []
-# server_ids = set()
-# next_server_id = 1
+lock = threading.Lock()
 
 @app.route('/rep', methods=['GET'])
 def rep():
     # This endpoint only returns the status of the replicas managed by the loadbalancer. 
     # The response contains the number of replicas and their hostname in the docker internal 
     # network:n1 
+    lock.acquire()
     replica_names = []
     for replica in replicas:
         replica_names.append(replica[0])
@@ -32,6 +27,7 @@ def rep():
         "N": len(replicas),
         "replicas": replica_names
     }
+    lock.release()
     return jsonify({'message': message, 'status': 'successful'}), 200
 
 '''
@@ -49,7 +45,9 @@ def add():
     if n < len(hostnames):
         message = '<ERROR> Length of hostname list is more than newly added instances'
         return jsonify({'message': message, 'status': 'failure'}), 400
-    
+    lock.acquire()
+    global replicas
+
     replica_names = []
     for replica in replicas:
         replica_names.append(replica[0])
@@ -84,13 +82,14 @@ def add():
             replicas.append([hostnames[i], container_name])
         else:
             message = '<ERROR> Could not add server'
+            lock.release()
             return jsonify({'message': message, 'status': 'failure'}), 400
 
     message = {
         "N": len(replicas),
         "replicas": replica_names
     }
-        
+    lock.release()
     return jsonify({'message': message, 'status': 'successful'}), 200
 
 @app.route('/rm', methods=['DELETE'])
@@ -105,7 +104,7 @@ def remove():
     if n < len(hostnames):
         message = '<ERROR> Length of hostname list is more than newly added instances'
         return jsonify({'message': message, 'status': 'failure'}), 400
-    
+    lock.acquire()
     global replicas
     replica_names = []
     for replica in replicas:
@@ -114,6 +113,7 @@ def remove():
     # sanity check
     if n > len(replica_names):
         message = '<ERROR> Number of containers to be removed is more than the number of containers present'
+        lock.release()
         return jsonify({'message': message, 'status': 'failure'}), 400
     
     # We will first delete the named containers, then move on to delete the rest of the containers
@@ -154,7 +154,7 @@ def remove():
         "N": len(replicas),
         "replicas": replica_names
     }
-
+    lock.release()
     return jsonify({'message': message, 'status': 'successful'}), 200
 
 @app.route('/<path>', methods=['GET'])
@@ -163,7 +163,7 @@ def forward_request(path):
     if path in endpoints:
         server = hr.get_server(random.randint(0, 999999))
         if server != None:
-            reply = requests.get(f'http://{server}:12345/{path}')
+            reply = requests.get(f'http://{server}:{serverport}/{path}')
             return reply.json(), reply.status_code
         else:
             message = '<ERROR> Server unavailable'
@@ -171,14 +171,35 @@ def forward_request(path):
     else:
         message = '<ERROR> \'{}\' endpoint does not exist in server replicas'.format(path)
         return jsonify({'message': message, 'status': 'failure'}), 400
+
+def manage_replicas():
+    # This function is responsible for managing the replicas
+    # It periodically checks the health of the replicas and if a replica is down, it replaces it with a new replica
+    while True:
+        lock.acquire()
+        for replica in replicas:
+            reply = requests.get(f'http://{replica[1]}:{serverport}/heartbeat')
+            if reply.status_code != 200:
+                # Replica is down
+                print(f'Replica {replica[1]} is down')
+                # Ensure that the replica container is stopped and removed
+                os.system(f'docker stop {replica[1]} && docker rm {replica[1]}')
+                # Replace the replica with a new replica
+                serverid = replica[1][7:]
+                os.system(f'docker run --name {replica[1]} --network mynet --network-alias {replica[1]} -e SERVER_ID={serverid} -d serverim:latest')
+        lock.release()
+        # Sleep for 10 seconds
+        time.sleep(10)
     
 if __name__ == '__main__':
-    
     config = json.load(open('../config.json', 'r'))
     hr = HashRing(hashtype = config['hashring']['function'])
     endpoints = config['endpoints']
+    serverport = config['serverport']
     replicas = []
     server_ids = set()
     next_server_id = 1
+    thread = threading.Thread(target=manage_replicas)
+    thread.start()
     
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=config['loadbalancerport'], debug=False)

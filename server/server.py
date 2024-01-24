@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -21,4 +22,5 @@ def heartbeat():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=12345, debug=False)
+    config = json.load(open('../config.json', 'r'))
+    app.run(host='0.0.0.0', port=config['serverport'], debug=False)
