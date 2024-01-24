@@ -53,7 +53,7 @@ if __name__ == "__main__":
             hostnames = []
             for i in range(n):
                 hostnames.append(input("Enter hostname: "))
-                if hostnames[i] == "":
+                if hostnames[-1] == "":
                     hostnames.pop()
             print(remove_replicas(n, hostnames))
         elif choice == 4:
