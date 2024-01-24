@@ -235,12 +235,10 @@ def forward_request(path):
         message = '<ERROR> Server unavailable'
         return jsonify({'message': message, 'status': 'failure'}), 400
 
-'''
-Entrypoint for thread that checks the replicas for heartbeats every 10 seconds.
-'''
 def manage_replicas():
-    # This function is responsible for managing the replicas
-    # It periodically checks the health of the replicas and if a replica is down, it replaces it with a new replica
+    '''
+    Entrypoint for thread that checks the replicas for heartbeats every 10 seconds.
+    '''
     while True:
         lock.acquire()
         for replica in replicas:
