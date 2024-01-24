@@ -141,7 +141,7 @@ def remove():
     for i in range(n):
         container = replicas_tobedeleted[i][1]
         os.system(f'docker stop {container} && docker rm {container}')
-        hr.remove_server(int(container[7:]))
+        hr.remove_server(container)
         server_ids.add(int(container[7:]))
     new_replicas = []
     replica_names = []
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     replicas = []
     server_ids = set()
     next_server_id = 1
-    thread = threading.Thread(target=manage_replicas)
+    # thread = threading.Thread(target=manage_replicas)
     # thread.start()
     
     app.run(host='0.0.0.0', port=config['loadbalancerport'], debug=False)
