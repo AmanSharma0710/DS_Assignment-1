@@ -74,7 +74,7 @@ class HashRing:
             if self.server_alloc[j] == server_id:
                 self.server_alloc[j] = None
         # Remove server ID
-        self.serverid_to_name.pop(server_id)
+        self.serverid_to_name[server_id] = None
         self.name_to_serverid.pop(server_name)
         return True
 
