@@ -91,7 +91,7 @@ def add():
     # We go through the list of preferred hostnames and check if the hostname already exists, or if no hostname is provided, we generate a random hostname   
     for i in range(n):
         if (i >= len(hostnames)) or (hostnames[i] in replica_names):
-            for j in range(len(replica_names)):
+            for j in range(len(replica_names)+1):
                 new_name = 'S'+ str(j)
                 if new_name not in replica_names:
                     hostnames.append(new_name)
