@@ -1,7 +1,4 @@
 {
-    "serverport": 12345,
-    "loadbalancerport": 5000,
-    "clientport": 8081,
     "endpoints": ["home"],
     "hashring":
     {

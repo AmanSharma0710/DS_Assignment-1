@@ -202,11 +202,11 @@ if __name__ == '__main__':
     config = json.load(open('../config.json', 'r'))
     hr = HashRing(hashtype = config['hashring']['function'])
     endpoints = config['endpoints']
-    serverport = config['serverport']
+    serverport = 12345
     replicas = []
     server_ids = set()
     next_server_id = 1
     # thread = threading.Thread(target=manage_replicas)
     # thread.start()
     
-    app.run(host='0.0.0.0', port=config['loadbalancerport'], debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)

@@ -25,7 +25,7 @@ def make_request(endpoint_path):
 if __name__ == "__main__":
     # load balancer port from config.json
     config = json.load(open("../config.json", "r"))
-    load_balancer_port = config["loadbalancerport"]
+    load_balancer_port = 5000
     load_balancer_url = f"http://localhost:{load_balancer_port}"
     print(load_balancer_url)
 
