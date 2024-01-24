@@ -118,6 +118,12 @@ def remove():
         lock.release()
         return jsonify({'message': message, 'status': 'failure'}), 400
     
+    for hostname in hostnames:
+        if hostname not in replica_names:
+            message = '<ERROR> Hostname not found'
+            lock.release()
+            return jsonify({'message': message, 'status': 'failure'}), 400
+
     # We will first delete the named containers, then move on to delete the rest of the containers
     # We will also remove the hostnames from the list of hostnames
 

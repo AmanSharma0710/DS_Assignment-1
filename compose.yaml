@@ -5,17 +5,6 @@ networks:
     name: mynet
 
 services:
-  # server:
-  #   build:
-  #     context: ./
-  #     dockerfile: ./server/Dockerfile
-  #   image: serverim
-  #   # container_name: server
-  #   networks: 
-  #     mynet:
-  #       aliases:  
-  #         - server_1
-
   loadbalancer: 
     build: 
       context: ./
@@ -31,16 +20,3 @@ services:
       mynet:
         aliases:  
           - loadbalancer
-
-  # client:
-  #   build:
-  #     context: ./
-  #     dockerfile: ./client/Dockerfile
-  #   image: clientim
-  #   container_name: client
-  #   ports: 
-  #     - "8081:8081"
-  #   networks:
-  #     mynet:
-  #       aliases:
-  #         - client
