@@ -30,3 +30,16 @@ services:
       mynet:
         aliases:  
           - loadbalancer
+
+  client:
+    build:
+      context: ./
+      dockerfile: ./client/Dockerfile
+    image: clientim
+    container_name: client
+    ports: 
+      - "8081:8081"
+    networks:
+      mynet:
+        aliases:
+          - client

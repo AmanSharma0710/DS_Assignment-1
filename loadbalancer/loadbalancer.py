@@ -7,6 +7,8 @@ import string
 import random
 import sys
 import threading
+import time
+
 sys.path.append('../utils')
 from hashring import HashRing
 
@@ -200,6 +202,6 @@ if __name__ == '__main__':
     server_ids = set()
     next_server_id = 1
     thread = threading.Thread(target=manage_replicas)
-    thread.start()
+    # thread.start()
     
     app.run(host='0.0.0.0', port=config['loadbalancerport'], debug=False)
