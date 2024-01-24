@@ -19,5 +19,11 @@ def heartbeat():
     return '', 200
 
 
+@app.route('/<path>', methods=['GET'])
+def no_endpoint(path):
+    message = '<ERROR> \'{}\' endpoint does not exist in server replicas'.format(path)
+    return jsonify({'message': message, 'status': 'failure'}), 400
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=12345, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)

@@ -9,6 +9,6 @@ RUN mkdir /server
 COPY . /server
 WORKDIR /server
 
-EXPOSE 12345
+EXPOSE 5000
 
 CMD ["python3", "server.py"]

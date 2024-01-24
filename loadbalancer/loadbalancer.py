@@ -161,17 +161,13 @@ def remove():
 
 @app.route('/<path>', methods=['GET'])
 def forward_request(path):
-    # This forwards the request to the backend server if it is a registered endpoint, else returns an error
-    if path in endpoints:
-        server = hr.get_server(random.randint(0, 999999))
-        if server != None:
-            reply = requests.get(f'http://{server}:{serverport}/{path}')
-            return reply.json(), reply.status_code
-        else:
-            message = '<ERROR> Server unavailable'
-            return jsonify({'message': message, 'status': 'failure'}), 400
+    # This forwards the request to the backend server
+    server = hr.get_server(random.randint(0, 999999))
+    if server != None:
+        reply = requests.get(f'http://{server}:{serverport}/{path}')
+        return reply.json(), reply.status_code
     else:
-        message = '<ERROR> \'{}\' endpoint does not exist in server replicas'.format(path)
+        message = '<ERROR> Server unavailable'
         return jsonify({'message': message, 'status': 'failure'}), 400
 
 def manage_replicas():
@@ -199,10 +195,8 @@ def manage_replicas():
         time.sleep(10)
     
 if __name__ == '__main__':
-    config = json.load(open('../config.json', 'r'))
-    hr = HashRing(hashtype = config['hashring']['function'])
-    endpoints = config['endpoints']
-    serverport = 12345
+    hr = HashRing(hashtype = "sha256")
+    serverport = 5000
     replicas = []
     server_ids = set()
     next_server_id = 1
