@@ -10,7 +10,6 @@ RUN pip install --upgrade pip
 COPY ./loadbalancer ./loadbalancer
 COPY ./utils /utils
 COPY ./requirements.txt /requirements.txt
-COPY ./config.json /config.json
 
 RUN pip install -r requirements.txt
 
