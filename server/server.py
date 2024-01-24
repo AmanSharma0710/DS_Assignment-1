@@ -30,7 +30,6 @@ No request payload is required and it returns an empty response with a 200 statu
 def heartbeat():
     return '', 200
 
-
 '''
 (/<path>,method=GET): This endpoint is a catch-all for any undefined routes.
 It returns an error message indicating that the requested endpoint does not exist in the server replicas.

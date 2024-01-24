@@ -33,6 +33,34 @@ This endpoints sends heartbeat (empty) responses upon request. This endpoint ser
 
 ## HashRing
 
+The `HashRing` class implements a distributed hash ring using consistent hashing. It provides a way to map keys or request IDs to servers in a distributed system. Consistent hashing is a technique that allows for dynamic scaling and load balancing in distributed systems.
+
+### Usage
+
+To use the `HashRing` class, follow these steps:
+
+1. **Initialization**: Create an instance of the `HashRing` class by providing the number of virtual nodes, size of the ring (`M`) and a hash function (`H`) as parameters.
+
+2. **Adding Servers**: Add servers to the hash ring using the `add_server` method. Each server is identified by a unique server ID. The server is hashed and placed on the ring at multiple points corresponding to its virtual nodes.
+
+3. **Mapping Requests**: Map a request ID to a server using the `get_server` method. This method takes a request ID as an argument and returns the name of the server to which the request is mapped. If the initial position of the request ID on the hash ring is already occupied by another server, linear probing is used to find the next available position.
+
+4. **Removing Servers**: Remove a server from the hash ring using the `remove_server` method. This method takes a server ID as an argument and removes all the virtual nodes of that server from the hash ring.
+
+### Design Choices
+
+The `HashRing` class makes the following design choices:
+
+- **Consistent Hashing**: Consistent hashing is used to distribute keys or request IDs across the servers in a balanced manner. This ensures that the load is evenly distributed and allows for easy addition or removal of servers without causing significant remapping of keys.
+
+- **Virtual Nodes**: The hash ring uses virtual nodes to improve the distribution of keys. Each server is represented by multiple virtual nodes on the hash ring, which helps to balance the load even further.
+
+- **Linear Probing**: In the `get_server` method, if the initial position of the request ID on the hash ring is already occupied by another server, linear probing is used to find the next available position. This ensures that the request is always mapped to a server, even if collisions occur.
+
+- **Null Return**: If no server is found for a given request ID, the `get_server` method returns `None`. Similarly, if a server to be removed does not exist in the hash ring, the `remove_server` method does nothing.
+
+Please refer to the code documentation for more details on the implementation.
+
 ## Load Balancer
 
 The load balancer uses the HashRing data structure to manage a set of N web server containers. 
