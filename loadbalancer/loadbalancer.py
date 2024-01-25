@@ -229,8 +229,15 @@ def forward_request(path):
     server = hr.get_server(random.randint(0, 999999))
     if server != None:
         # Forward the request and return the response
-        reply = requests.get(f'http://{server}:{serverport}/{path}')
-        return reply.json(), reply.status_code
+        try:
+            reply = requests.get(f'http://{server}:{serverport}/{path}')
+            return reply.json(), reply.status_code
+        except requests.exceptions.RequestException:
+            message = '<ERROR> Server unavailable'
+            return jsonify({'message': message, 'status': 'failure'}), 400
+        except requests.exceptions.ConnectionError:
+            message = '<ERROR> Server unavailable'
+            return jsonify({'message': message, 'status': 'failure'}), 400
     else:
         message = '<ERROR> Server unavailable'
         return jsonify({'message': message, 'status': 'failure'}), 400
