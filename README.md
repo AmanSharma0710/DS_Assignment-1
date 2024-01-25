@@ -23,12 +23,10 @@ The servers have a hostname which is what is received by the client and can be s
 
 The server accepts HTTP requests on port 5000 in the endpoints:
 
-#### /home (method = GET):
-
+<font size="3">_/home (method = GET)_</font>  
 This returns a hello message with server ID along with relevant response code. The server ID returned here is the internal server ID and is in no way related to number (if exists) in the server's hostname.
 
-#### /heartbeat (method = GET):
-
+<font size="3">_/heartbeat (method = GET)_</font>  
 This endpoints sends heartbeat (empty) responses upon request. This endpoint serves to identify failures in the set of containers maintained by the load balancer which would be indicated by the error response received by the load balancer
 
 ## HashRing
@@ -69,24 +67,20 @@ The load balancer is a multi-threaded process. The main thread handles all the r
 
 The load balancer endpoints are exposed at port 5000. We have exposed the following endpoints:
 
-#### /rep (method = GET)
-
+<font size="3">_/rep (method = GET)_</font>  
 This endpoint returns the status of the replicas managed by the load balancer. We store a global list `replicas` which stores the currently deployed servers in the format: `[hostname, container_name]`. We return the number of servers deployed (n) after the addition and their hostnames (not the container names).
 
-#### /add (method = POST)
-
+<font size="3">_/add (method = POST)_</font>  
 This endpoint adds a server instance in the load balancer. It expects a JSON payload that mentions the number of new instances and their preferred hostnames. In response we send the complete list of currently deployed servers with their hostnames. If the preferred hostname can not be set, we set the hostname as `S<number>` with number being a non-used number from 0 to the number of servers.
 
 To spawn a new container, `SERVER_ID` is required. This is found from a global set `server_ids` which keeps track of the free server ids. The lowest available id is chosen. If the set is empty, we choose the value of the global variable `next_server_id` which is then incremented. This `SERVER_ID` is also set as an environment variable when this new container is spawned by the load balancer.
 
-#### /rm (method = DELETE)
-
+<font size="3">_/rm (method = DELETE)_</font>  
 This endpoint adds a server instance in the load balancer. It expects a JSON payload that mentions the number of new instances and their hostnames. We return the number of servers deployed (n) after the deletion and their hostnames (not the container names).
 
 We first choose to delete the containers whose hostnames have been given. If the number of hostnames is less than the required number, we choose the rest servers to be deleted randomly. For this we shuffle the list of servers and choose the servers from the start of this shuffled list and delete them. We stop these containers and remove them from the docker.
 
-#### /path (method = GET)
-
+<font size="3">_/&lt;path> (method = GET)_</font>  
 Requests to this endpoint gets routed to a server replica as scheduled by the HashRing. Only endpoints registered with the web server would give a valid response. Currently only `home` is registered. Any other request gives out an error response.
 
 ## Analysis
