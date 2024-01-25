@@ -1,5 +1,25 @@
 # Assignment-1: Customizable Load Balancer
 
+## Table of Contents
+
+- [Assignment-1: Customizable Load Balancer](#assignment-1-customizable-load-balancer)
+  - [Table of Contents](#table-of-contents)
+  - [Docker and Installation](#docker-and-installation)
+  - [Instructions](#instructions)
+  - [Server](#server)
+  - [HashRing](#hashring)
+    - [Usage](#usage)
+    - [Design Choices](#design-choices)
+  - [Load Balancer](#load-balancer)
+  - [Analysis](#analysis)
+  - [Client](#client)
+
+## Docker and Installation
+
+The docker containers are based on the `ubuntu:20.04` image which is a full-fledged OS. This is to ensure that the containers are self-sufficient and thus, do not require any external dependencies or a particular OS to run. The only requirements to run the containers are `docker` and `docker-compose`.  
+You can check the installation instructions for docker [here](https://docs.docker.com/engine/install/) and for docker-compose [here](https://docs.docker.com/compose/install/).  
+We have chosen to containerize the load balancer and the servers. The load balancer is run as a separate container which then spawns the server containers. The load balancer and the servers are run on the same network so that the load balancer can communicate with the servers. Only port 5000 is exposed for the load balancer to receive requests. The servers are not exposed to the host machine.  
+
 ## Instructions
 
 The Makefile lists all the commands required for deploying the load balancer network as well as for deploying the client.
@@ -73,6 +93,15 @@ The load balancer endpoints are exposed at port 5000. We have exposed the follow
   Requests to this endpoint gets routed to a server replica as scheduled by the HashRing. Only endpoints registered with the web server would give a valid response. Currently only `home` is registered. Any other request gives out an error response.
 
 ## Analysis
+
+We have written scripts to run the required tests on the code, and the results along with the code can be found in the `analysis` folder. The tests are described below:
+1. **Test 1**: This test checks the load balancing functionality of the load balancer. We spawn 3 servers and send 10000 asynchronous requests to the load balancer. We then check and plot the number of requests received by each server.
+2. **Test 2**: This test increments the number of servers from 2 to 6 and sends 10000 asynchronous requests to the load balancer. We then check and plot the number of requests received by each server on average.
+3. **Test 3**: This test checks all the endpoints of the load balancer. We use the client to send requests to the load balancer and check the responses.
+4. **Test 4**: This analysis involves testing different hash functions and checking the distribution of keys. We use `md5`, `sha256` and a `custom` hash function to hash 10000 keys and plot the distribution of keys across the servers. We plot the distribution of keys for 3 server instances, as well as average distribution for 2 to 6 server instances. We can observe that variance in the distribution of keys is lower for all the 3 functions compared to the `default` hash function, which makes them better choices for consistent hashing.
+
+[A detailed report](analysis/Analysis.pdf) of the analysis can be found in the `analysis` folder.
+
 
 ## Client
 
