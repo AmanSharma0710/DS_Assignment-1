@@ -26,7 +26,7 @@ if __name__ == "__main__":
     load_balancer_url = f"http://loadbalancer:{load_balancer_port}"
     print("Client Started....")
     while(1):
-        print("1. Get replica status")
+        print("\n1. Get replica status")
         print("2. Add replicas")
         print("3. Remove replicas")
         print("4. Make request")
