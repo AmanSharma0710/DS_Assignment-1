@@ -4,7 +4,8 @@
 
 - [Assignment-1: Customizable Load Balancer](#assignment-1-customizable-load-balancer)
   - [Table of Contents](#table-of-contents)
-  - [Docker and Installation](#docker-and-installation)
+  - [Docker and Docker Compose](#docker-and-docker-compose)
+    - [Installation](#installation)
   - [Instructions](#instructions)
   - [Server](#server)
   - [HashRing](#hashring)
@@ -14,11 +15,14 @@
   - [Analysis](#analysis)
   - [Client](#client)
 
-## Docker and Installation
+## Docker and Docker Compose
 
-The docker containers are based on the `ubuntu:20.04` image which is a full-fledged OS. This is to ensure that the containers are self-sufficient and thus, do not require any external dependencies or a particular OS to run. The only requirements to run the containers are `docker` and `docker-compose`.  
-You can check the installation instructions for docker [here](https://docs.docker.com/engine/install/) and for docker-compose [here](https://docs.docker.com/compose/install/).  
-We have chosen to containerize the load balancer and the servers. The load balancer is run as a separate container which then spawns the server containers. The load balancer and the servers are run on the same network so that the load balancer can communicate with the servers. Only port 5000 is exposed for the load balancer to receive requests. The servers are not exposed to the host machine.  
+The docker containers are based on the `ubuntu:20.04` image which is a full-fledged OS. This is to ensure that the containers are self-sufficient and thus do not require any external dependencies or a particular OS to run. The only requirements to run the containers are `docker` and `docker-compose`.  
+
+### Installation
+You can get the installation instructions for docker and docker-compose from the following links:
+* [Docker](https://docs.docker.com/engine/install/)
+* [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Instructions
 
@@ -30,7 +34,7 @@ The Makefile lists all the commands required for deploying the load balancer net
 A separate client has also been made available to send requests to the load balancer. The commands are described below:
 
 * `make client`: builds the client image and runs the client container. This runs the client on the same network as the load balancer so it should be run after deploying the load balancer
-* `make clean_client`: stops and removes the client container and removes the client imagegit
+* `make clean_client`: stops and removes the client container and removes the client image
 
 `curl` command can also be used to send requests to the load balancer from the host machine without using a separate client container in the following format:
 
@@ -77,7 +81,7 @@ Please refer to the code documentation for more details on the implementation.
 
 ## Load Balancer
 
-The load balancer uses the HashRing data structure to manage a set of N web server containers.
+The load balancer uses the HashRing data structure to manage a set of N web server containers. The load balancer is run as a separate container which then spawns the server containers. The load balancer and the servers are run on the same network so that the load balancer can communicate with the servers. Only port 5000 is exposed for the load balancer to receive requests. The servers are not exposed to the host machine.  
 
 The load balancer is a multi-threaded process. The main thread handles all the requests to the various endpoints (which have been described below). The secondary thread is responsible for maintaining the number of servers. This thread periodically (set to 10 seconds) requests heartbeat from each server (maintained in a global list). If it finds a non-responsive server, it will first remove the container from the docker and then spawn another container with the same hostname and container name as the deleted server.
 
