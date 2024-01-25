@@ -4,6 +4,7 @@ import asyncio
 import time
 import matplotlib.pyplot as plt
 import csv
+import numpy as np
 
 url = "http://localhost:5000"
 endpoint = "/home"
@@ -25,7 +26,7 @@ async def main(n_requests=10000):
     return result
 
 if __name__ == "__main__":
-    n_requests = 100
+    n_requests = 10000
 
     start_time = time.time()
     result = asyncio.run(main(n_requests))
@@ -36,10 +37,11 @@ if __name__ == "__main__":
     print(f"Throughput: {n_requests/(end_time - start_time)} requests/second")
 
     # plot the result
-    plt.bar(result.keys(), result.values(), color='grey')
+    plt.bar([1, 2, 3], result.values(), color='grey')
+    plt.xticks(np.arange(1, 4, step=1))
     plt.xlabel("Server ID")
     plt.ylabel("Number of requests")
     plt.title("Hashring performance")
-    plt.savefig("./plots/check.png")
+    plt.savefig("./plots/A1_custom.png")
 
 

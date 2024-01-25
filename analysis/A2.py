@@ -5,6 +5,7 @@ import time
 import matplotlib.pyplot as plt
 import csv
 import requests
+import sys
 
 url = "http://localhost:5000"
 endpoint = "/home"
@@ -26,39 +27,13 @@ async def main(n_requests=10000):
     return result
 
 if __name__ == "__main__":
-
-    # get the number of servers active
-    response = requests.get(f"{url}/rep")
-    print(response.json())
-    n_servers = response.json()['message']['N']
-
-    # make the number of servers 1
-    if n_servers > 1:
-        response = requests.delete(f"{url}/rm", json={"n": n_servers-1, "hostnames": []})
-    elif n_servers < 1:
-        response = requests.post(f"{url}/add", json={"n": 1-n_servers, "hostnames": []})
-
-    print(response.json())
-
-    means = []
-    stds = []
-    for i in range(5):
-        print(f"Run {i+1}")
-        response = requests.post(f"{url}/add", json={"n": 1, "hostnames": []})
-        print(response.json())
-        time.sleep(5)
-
-        response = requests.get(f"{url}/rep")
-        print(response.json())
-
         
-        n_requests = 10
+        n_requests = 10000
         start_time = time.time()
         # get result as json
-        result = asyncio.run(main(n_requests))
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete(main(n_requests))
         end_time = time.time()
-
-
         print(result)
 
         # find mean and standard deviation
@@ -70,17 +45,12 @@ if __name__ == "__main__":
         for i in result.values():
             std += (i - mean)**2
         std /= len(result.values())
+        std = std**0.5
+        time_taken = end_time - start_time
 
-        means.append(mean)
-        stds.append(std)
-
-    print(result)
-    # plot the means in a bar graph and standard deviation as error bars
-    plt.bar(range(5), means, yerr=stds, color='grey')
-    plt.xlabel("Server ID")
-    plt.ylabel("Number of requests")
-    plt.title("Hashring performance")
-    plt.savefig("./plots/A2.png")
-
+        # write to csv
+        with open("./logs/A2_md5.csv", "a") as f:
+            writer = csv.writer(f)
+            writer.writerow([mean, std, time_taken])
 
 
