@@ -15,6 +15,7 @@ from hashring import HashRing
 app = Flask(__name__)
 CORS(app)
 lock = threading.Lock()
+hrlock = threading.Lock()
 
 '''
 (/rep,method=GET): This endpoint returns the current number of replicas and their hostnames.
@@ -99,7 +100,7 @@ def add():
                     break
         elif hostnames[i] not in replica_names:
             replica_names.append(hostnames[i])
-
+    hrlock.acquire()
     # Spawn the containers from the load balancer
     for i in range(n):
         container_name = "Server_"
@@ -121,12 +122,15 @@ def add():
         else:
             message = '<ERROR> Could not add server'
             lock.release()
+            hrlock.release()
             return jsonify({'message': message, 'status': 'failure'}), 400
 
     message = {
         "N": len(replicas),
         "replicas": replica_names
     }
+    # Release the locks
+    hrlock.release()
     lock.release()
     return jsonify({'message': message, 'status': 'successful'}), 200
 
@@ -183,6 +187,7 @@ def remove():
     # We will first delete the named containers, then move on to delete the rest of the containers
     # We will also remove the hostnames from the list of hostnames
     new_replicas = []
+    hrlock.acquire()
     for replica in replicas:
         if replica[0] in hostnames:
             os.system(f'docker stop {replica[1]} && docker rm {replica[1]}')
@@ -204,6 +209,7 @@ def remove():
         os.system(f'docker stop {container} && docker rm {container}')
         hr.remove_server(container)
         server_ids.add(int(container[7:]))
+    hrlock.release()
     new_replicas = []
     replica_names = []
     for replica in replicas:
@@ -226,16 +232,27 @@ def remove():
 @app.route('/<path>', methods=['GET'])
 def forward_request(path):
     # Generate a random 6 digit request ID and get hostname of a replica from the hashring
+    hrlock.acquire()
     server = hr.get_server(random.randint(0, 999999))
+    hrlock.release()
     if server != None:
         # Forward the request and return the response
         try:
             reply = requests.get(f'http://{server}:{serverport}/{path}')
             return reply.json(), reply.status_code
         except requests.exceptions.RequestException:
+            # If request to any replica fails, we remove the replica from the hashring so that no further requests are forwarded to it
+            # When the replica is heartbeated again, it will be added back to the hashring
+            hrlock.acquire()
+            hr.remove_server(server)
+            hrlock.release()
             message = '<ERROR> Server unavailable'
             return jsonify({'message': message, 'status': 'failure'}), 400
         except requests.exceptions.ConnectionError:
+            # Replica is down
+            hrlock.acquire()
+            hr.remove_server(server)
+            hrlock.release()
             message = '<ERROR> Server unavailable'
             return jsonify({'message': message, 'status': 'failure'}), 400
     else:
@@ -261,8 +278,13 @@ def manage_replicas():
                 serverid = replica[1][7:]
                 # We use the same name instead of generating a new name to keep the naming consistent
                 os.system(f'docker run --name {replica[1]} --network mynet --network-alias {replica[1]} -e SERVER_ID={serverid} -d serverim:latest')
+                hrlock.acquire()
+                hr.remove_server(replica[1])
+                hr.add_server(replica[1])
+                hrlock.release()
             else:
-                if reply.status_code != 200:
+                hrlock.acquire()
+                if reply.status_code != 200 or replica[1] not in hr.name_to_serverid.keys():
                     # Replica is not heartbeating, so it is assumed to be down
                     print(f'Replica {replica[1]} is not responding to heartbeat, killing it')
                     # Ensure that the replica container is stopped and removed
@@ -270,6 +292,9 @@ def manage_replicas():
                     # Replace the replica with a new replica
                     serverid = replica[1][7:]
                     os.system(f'docker run --name {replica[1]} --network mynet --network-alias {replica[1]} -e SERVER_ID={serverid} -d serverim:latest')
+                    hr.remove_server(replica[1])
+                    hr.add_server(replica[1])
+                hrlock.release()
         lock.release()
         # Sleep for 10 seconds
         time.sleep(10)
