@@ -1,6 +1,6 @@
 all:
 	docker build ./server -t serverim
-	docker compose up
+	docker compose up -d
 
 .PHONY : client
 client:
